@@ -1,0 +1,11 @@
+id,producto,cantidad,precio
+1,Producto A,5,100.0
+2,Producto B, ,200.0       
+3,Producto C,10,abc         
+4,Producto D,20,150.5
+5,,15,300.0                 
+6,Producto F,10             
+7,Producto G,-5,250.0       
+8,Producto H,12,            
+9,Producto I,10,350.0
+10,Producto J,5,texto       
