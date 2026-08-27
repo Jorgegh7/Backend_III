@@ -54,6 +54,8 @@ En vez de la configuración declarativa simple (`.skip(Clase.class).skipLimit(n)
 
 - **`BancoXyzSkipPolicy`**: decide si un registro se salta según el tipo de excepción, con límites propios y contadores independientes (`AtomicInteger`, seguros entre hilos) para errores de datos (`RegistroInvalidoException`) y de formato de fecha (`FechaInvalidaException`). Cualquier excepción no controlada no se salta — deja que el Job falle.
 - **`BancoXyzRetryPolicy`**: reintenta hasta 3 veces cualquier excepción que **no** sea de negocio (pensada para fallas transitorias). Los datos inválidos nunca se reintentan.
+
+*Nota de corrección: se detectó y corrigió un bug de recursión infinita en `BancoXyzRetryPolicy.canRetry()` — la rama que maneja excepciones no contempladas explícitamente llamaba incorrectamente a `canRetry(context)` (a sí misma) en vez de `super.canRetry(context)` (delegando a `SimpleRetryPolicy`), lo que producía un desborde de pila. Ver detalle completo en el Informe Técnico.*
 - **`BancoXyzCompletionPolicy`**: cierra cada chunk por cantidad de ítems o por tiempo transcurrido, lo que ocurra primero.
 
 ### Listeners (paquete `listener`)
