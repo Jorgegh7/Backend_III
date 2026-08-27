@@ -66,7 +66,7 @@ Spring Batch 6 no persiste sus propias tablas de metadata (`BATCH_JOB_EXECUTION`
 
 ### Procesamiento paralelo (multithreading)
 
-Cada Step se ejecuta con un `TaskExecutor` (`ThreadPoolTaskExecutor`) configurado con una política de escalamiento fija: **6 hilos** (`core = max = 6`), una cola de espera de 10 tareas para chunks adicionales, y `CallerRunsPolicy` como salvaguarda ante saturación. El `FlatFileItemReader` se envuelve en un `SynchronizedItemStreamReader` para garantizar lectura segura entre hilos.
+Cada Step se ejecuta con un `TaskExecutor` (`ThreadPoolTaskExecutor`) configurado con una política de escalamiento fija: **6 hilos** (`core = max = 6`), una cola de espera de 100 tareas para chunks adicionales, y `CallerRunsPolicy` como salvaguarda ante saturación. El `FlatFileItemReader` se envuelve en un `SynchronizedItemStreamReader` para garantizar lectura segura entre hilos.
 
 Se compararon 9 combinaciones de hilos y tamaño de chunk sobre el dataset de `semana_3` (1000 filas por archivo):
 
