@@ -164,12 +164,14 @@ docker ps
 ## Prueba end-to-end (OAuth2, dockerizado)
 
 ```bash
-curl.exe -X POST http://localhost:9000/oauth2/token -u ms-seguridad-client:secret123 -d "grant_type=client_credentials&scope=cuentas.read"
+curl.exe -X POST http://localhost:9000/oauth2/token -u <client-id>:<client-secret> -d "grant_type=client_credentials&scope=cuentas.read"
 
 curl.exe -X GET http://localhost:8081/api/oauth2/cuentas/8/saldo -H "Authorization: Bearer <token>"
 ```
 
 Respuesta esperada: `{"saldo": 9900.00}` (dato real, leído desde Neon a través del contenedor).
+
+> **Nota**: `<client-id>` y `<client-secret>` corresponden a las credenciales definidas en `auth-server` (ver su `README.md` individual). Son credenciales de desarrollo (`{noop}`, sin hash) usadas únicamente para esta actividad académica — no se exponen en texto plano en este documento, y en un entorno productivo real el `client-secret` debería estar hasheado y gestionado como un secreto, no versionado en el código.
 
 ## Estructura del repositorio
 
