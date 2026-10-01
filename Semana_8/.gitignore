@@ -1,0 +1,8 @@
+@"
+.env
+*/target/
+*.class
+.idea/
+*/hs_err_pid*.log
+*/replay_pid*.log
+"@ | Out-File -FilePath .gitignore -Encoding utf8
