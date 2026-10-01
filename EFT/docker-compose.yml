@@ -1,0 +1,159 @@
+services:
+
+  config-server:
+    build: ./config-server
+    container_name: config-server
+    ports:
+      - "8888:8888"
+    volumes:
+      - ./config-repo:/config-repo
+    networks:
+      - banco-net
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8888/actuator/health"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 15s
+
+  eureka-server:
+    build: ./eureka-server
+    container_name: eureka-server
+    ports:
+      - "8761:8761"
+    depends_on:
+      config-server:
+        condition: service_healthy
+    networks:
+      - banco-net
+
+  auth-server:
+    build: ./auth-server
+    container_name: auth-server
+    ports:
+      - "9000:9000"
+    networks:
+      - banco-net
+
+  banco-central-clientes:
+    build: ./banco-central-clientes
+    container_name: banco-central-clientes
+    restart: unless-stopped
+    ports:
+      - "8085:8085"
+    environment:
+      - DB_PASSWORD=${DB_PASSWORD}
+      - JWT_SECRET=${JWT_SECRET}
+    depends_on:
+      config-server:
+        condition: service_healthy
+      eureka-server:
+        condition: service_started
+      auth-server:
+        condition: service_started
+    networks:
+      - banco-net
+
+  banco-central-cuentas:
+    build: ./banco-central-cuentas
+    container_name: banco-central-cuentas
+    restart: unless-stopped
+    ports:
+      - "8086:8086"
+    environment:
+      - DB_PASSWORD=${DB_PASSWORD}
+      - JWT_SECRET=${JWT_SECRET}
+    depends_on:
+      config-server:
+        condition: service_healthy
+      eureka-server:
+        condition: service_started
+      auth-server:
+        condition: service_started
+    networks:
+      - banco-net
+
+  banco-central-pagos:
+    build: ./banco-central-pagos
+    container_name: banco-central-pagos
+    restart: unless-stopped
+    ports:
+      - "8087:8087"
+    environment:
+      - DB_PASSWORD=${DB_PASSWORD}
+      - JWT_SECRET=${JWT_SECRET}
+    depends_on:
+      config-server:
+        condition: service_healthy
+      eureka-server:
+        condition: service_started
+      auth-server:
+        condition: service_started
+      banco-central-cuentas:
+        condition: service_started
+    networks:
+      - banco-net
+
+  bff-cajeros:
+    build: ./bff-cajeros
+    container_name: bff-cajeros
+    restart: unless-stopped
+    ports:
+      - "8082:8082"
+    depends_on:
+      eureka-server:
+        condition: service_started
+    networks:
+      - banco-net
+
+  bff-mobile:
+    build: ./bff-mobile
+    container_name: bff-mobile
+    ports:
+      - "8083:8083"
+    depends_on:
+      config-server:
+        condition: service_healthy
+      eureka-server:
+        condition: service_started
+      auth-server:
+        condition: service_started
+      banco-central-cuentas:
+        condition: service_started
+    restart: unless-stopped
+    networks:
+      - banco-net
+
+  bff-web:
+    build: ./bff-web
+    container_name: bff-web
+    ports:
+      - "8084:8084"
+    depends_on:
+      config-server:
+        condition: service_healthy
+      eureka-server:
+        condition: service_started
+      auth-server:
+        condition: service_started
+      banco-central-cuentas:
+        condition: service_started
+      banco-central-pagos:
+        condition: service_started
+    restart: unless-stopped
+    networks:
+      - banco-net
+
+  banco-xyz-batch:
+    build: ./banco-xyz-batch
+    container_name: banco-xyz-batch
+    profiles: ["batch"]
+    restart: "no"
+    environment:
+      - DB_PASSWORD=${DB_PASSWORD}
+    networks:
+      - banco-net
+
+networks:
+  banco-net:
+    driver: bridge

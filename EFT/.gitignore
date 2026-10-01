@@ -1,0 +1,14 @@
+﻿# Secretos
+.env
+
+# Compilados y temporales
+**/target/
+*.class
+*.log
+hs_err_pid*.log
+replay_pid*.log
+
+# IDE
+.idea/
+*.iml
+.vscode/

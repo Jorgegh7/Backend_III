@@ -1,0 +1,46 @@
+package cl.duoc.bancoxyz.policies;
+
+import org.springframework.batch.infrastructure.repeat.RepeatContext;
+import org.springframework.batch.infrastructure.repeat.policy.CompletionPolicySupport;
+
+/**
+ * Decide cuando se cierra un chunk: por cantidad de items (MAX_ITEMS)
+ * o por tiempo transcurrido (MAX_TIEMPO_MS), lo que ocurra primero.
+ * Reutilizable para los 3 Jobs (Transaccion, CuentaBancaria, MovimientoAnual).
+ *
+ * Es segura para multithreading: no guarda estado en campos de la politica (que es compartida
+ * entre hilos), sino en el RepeatContext que start() crea para cada chunk.
+ */
+public class BancoXyzCompletionPolicy extends CompletionPolicySupport {
+
+    private static final int MAX_ITEMS = 500;
+    private static final long MAX_TIEMPO_MS = 2000;
+    private static final String ATRIBUTO_INICIO = "bancoxyz.tiempoInicioChunk";
+
+    /**
+     * Inicia el chunk (antes de leer el primer item). La hora de inicio se guarda en el
+     * contexto propio de este chunk, no en un campo compartido entre hilos.
+     */
+    @Override
+    public RepeatContext start(RepeatContext parent) {
+        RepeatContext context = super.start(parent);
+        context.setAttribute(ATRIBUTO_INICIO, System.currentTimeMillis());
+        return context;
+    }
+
+    /**
+     * Se pregunta ANTES de leer/procesar el siguiente item: "¿sigo llenando este chunk, o ya esta listo?"
+     * true  = cierra el chunk ahora (se manda al Writer)
+     * false = sigue intentando meter otro item
+     *
+     * Se cierra si ya se alcanzo MAX_ITEMS items o si pasaron MAX_TIEMPO_MS desde que arranco
+     * este chunk -- lo que pase primero. El fin de la entrada lo maneja la clase base.
+     */
+    @Override
+    public boolean isComplete(RepeatContext context) {
+        boolean porCantidad = context.getStartedCount() >= MAX_ITEMS;
+        Long inicio = (Long) context.getAttribute(ATRIBUTO_INICIO);
+        boolean porTiempo = inicio != null && (System.currentTimeMillis() - inicio) >= MAX_TIEMPO_MS;
+        return porCantidad || porTiempo;
+    }
+}
