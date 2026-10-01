@@ -1,0 +1,88 @@
+services:
+
+  config-server:
+    build: ./config-server
+    container_name: config-server
+    ports:
+      - "8888:8888"
+    volumes:
+      - ./config-repo:/config-repo
+    networks:
+      - banco-net
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8888/actuator/health"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 15s
+
+  eureka-server:
+    build: ./eureka-server
+    container_name: eureka-server
+    ports:
+      - "8761:8761"
+    depends_on:
+      config-server:
+        condition: service_healthy
+    networks:
+      - banco-net
+
+  auth-server:
+    build: ./auth-server
+    container_name: auth-server
+    ports:
+      - "9000:9000"
+    networks:
+      - banco-net
+
+  banco-central-xyz:
+    build: ./banco-central-xyz
+    container_name: banco-central-xyz
+    ports:
+      - "8081:8081"
+    environment:
+      - DB_PASSWORD=${DB_PASSWORD}
+      - JWT_SECRET=${JWT_SECRET}
+    depends_on:
+      config-server:
+        condition: service_healthy
+      eureka-server:
+        condition: service_started
+      auth-server:
+        condition: service_started
+    networks:
+      - banco-net
+
+  bff-cajeros:
+    build: ./bff-cajeros
+    container_name: bff-cajeros
+    ports:
+      - "8082:8082"
+    depends_on:
+      - banco-central-xyz
+    networks:
+      - banco-net
+
+  bff-mobile:
+    build: ./bff-mobile
+    container_name: bff-mobile
+    ports:
+      - "8083:8083"
+    depends_on:
+      - banco-central-xyz
+    networks:
+      - banco-net
+
+  bff-web:
+    build: ./bff-web
+    container_name: bff-web
+    ports:
+      - "8084:8084"
+    depends_on:
+      - banco-central-xyz
+    networks:
+      - banco-net
+
+networks:
+  banco-net:
+    driver: bridge
