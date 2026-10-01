@@ -193,5 +193,4 @@ Cada microservicio incluye su propio `README.md` individual con su rol específi
 ## Limitaciones conocidas
 
 - El registro en Eureka sigue siendo demostrativo: ningún servicio consulta a Eureka para resolver direcciones de otro; todas las llamadas internas usan nombres de contenedor fijos definidos en `docker-compose.yaml`.
-- El estado de las solicitudes de retiro (`RetiroEstadoStore` en `bff-cajeros`) vive en memoria, sin persistencia — se pierde si el contenedor se reinicia.
 - Kafka no está dockerizado junto al resto de los microservicios; permanece en su propia instancia EC2, conectado por red pública.
