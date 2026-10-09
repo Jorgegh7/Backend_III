@@ -1,29 +1,65 @@
 # bff-cajeros
 
-Backend For Frontend del canal Cajero Automático. Expone el mínimo detalle posible (solo saldo, sin nombre del titular), por tratarse de un canal físico público con riesgo de exposición visual a terceros. Es el microservicio con mayor cantidad de patrones de resiliencia implementados: Circuit Breaker, Retry, Rate Limiter, y el flujo completo de mensajería asíncrona con Kafka.
+Backend for Frontend del canal **cajeros automáticos**. Consulta saldos en `banco-central-cuentas` y gestiona
+los retiros de forma asíncrona mediante Kafka.
 
-## Puerto
-`8082`
+- **Puerto:** 8082
+- **Registro:** Eureka (`eureka-server:8761`)
+- **Servicio que consume:** `banco-central-cuentas` (puerto 8086)
 
-## Tecnologías clave
-- Spring Boot 4.1.1, Spring Cloud (Eureka Client)
-- Resilience4j (Circuit Breaker + Retry + Rate Limiter)
-- Spring Kafka (productor de `retiros-solicitados`, consumidor de `retiros-aprobados`/`retiros-rechazados`)
-- Cliente OAuth2 propio (`client_credentials`) para llamadas de servicio a `banco-central-xyz`
+## Endpoints
 
-## Tolerancia a fallos (Resilience4j)
-`CuentaBancariaClient.obtenerSaldo(...)` está protegido con `@Retry` (3 intentos, backoff exponencial) y `@CircuitBreaker` (abre con ≥50% de fallas en ventana de 10 llamadas, mínimo 5 para evaluar). Un `RateLimiter` separado limita las llamadas a 5 cada 10 segundos. `ResilienceEventLogger` deja evidencia explícita de cada transición de estado en consola.
+| Método | Ruta | Seguridad | Descripción |
+|---|---|---|---|
+| GET | `/bff-cajero/cuentas/{id}/saldo` | Header `Authorization` con el JWT del usuario | Saldo de la cuenta |
+| GET | `/bff-cajero/cuentas/{id}/saldo-oauth2` | Sin JWT de usuario; el BFF usa su propio token OAuth2 | Saldo consultado servicio a servicio |
+| POST | `/bff-cajero/cuentas/{id}/retiros` | Token | Solicita un retiro; responde `202 Accepted` con estado `PENDIENTE` y un `solicitudId` |
+| GET | `/bff-cajero/cuentas/retiros/{solicitudId}` | Token | Consulta el resultado del retiro |
+| GET | `/actuator/health`, `/actuator/info` | Públicos | Estado del servicio |
 
-## Mensajería asíncrona (Kafka)
-`POST /bff-cajero/cuentas/{id}/retiros` publica `RetiroSolicitadoEvent` y responde `202 Accepted` de inmediato, sin esperar el procesamiento. El resultado se consulta después con `GET /bff-cajero/cuentas/retiros/{solicitudId}`, que lee de un almacenamiento en memoria (`RetiroEstadoStore`) poblado por el consumidor de resultados.
+Cuerpo del retiro: `{ "monto": 100 }`.
 
-## Endpoints principales
+Respuesta de la consulta de estado, una vez procesado el retiro:
+
+```json
+{
+  "solicitudId": "…",
+  "cuentaId": 335,
+  "estado": "APROBADO",
+  "monto": 100,
+  "saldoInicial": 12180.00,
+  "saldoFinal": 12080.00,
+  "motivo": "Retiro procesado correctamente",
+  "fechaProcesamiento": "…"
+}
 ```
-GET  /bff-cajero/cuentas/{id}/saldo              (JWT manual)
-GET  /bff-cajero/cuentas/{id}/saldo-oauth2        (OAuth2 client_credentials, sin pasar token manualmente)
-POST /bff-cajero/cuentas/{id}/retiros             (asíncrono, Kafka)
-GET  /bff-cajero/cuentas/retiros/{solicitudId}    (consulta de estado)
-```
 
-## Dependencias con otros servicios
-`config-server` (configuración local, no centralizada), `eureka-server`, `banco-central-xyz`, `auth-server`, Kafka (EC2).
+## Mensajería (Kafka)
+
+| Rol | Tópico | Evento |
+|---|---|---|
+| Productor | `retiros-solicitados` | `RetiroSolicitadoEvent`, al recibir un retiro |
+| Consumidor | `retiros-aprobados` y `retiros-rechazados` | `RetiroResultadoEvent`, con el resultado del retiro |
+
+Los resultados recibidos se guardan en memoria (`RetiroEstadoStore`) y se consultan por `solicitudId`.
+El estado se pierde si el servicio se reinicia (limitación documentada en el informe).
+
+## Resiliencia
+
+Resilience4j sobre el cliente hacia Cuentas (instancia `bancoCentral`): Circuit Breaker con fallback,
+Retry y Rate Limiter. La solicitud de retiro no se reintenta porque se publica una sola vez en Kafka.
+
+## Estructura
+
+```
+bff-cajeros/
+├── src/main/java/com/duoc/bff_cajeros/
+│   ├── controller/   CajeroController
+│   ├── service/      CajeroService, RetiroEstadoStore
+│   ├── client/       CuentaBancariaClient, CuentaBancariaOAuth2Client
+│   ├── kafka/        KafkaResultadoListener
+│   ├── dto/
+│   └── exception/
+├── src/main/resources/application.properties
+└── Dockerfile
+```

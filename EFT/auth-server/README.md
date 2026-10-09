@@ -1,29 +1,28 @@
 # auth-server
 
-Servidor de autorización OAuth2 (Spring Authorization Server). No contiene código Java propio — toda su lógica está resuelta por configuración declarativa. Implementa el flujo `client_credentials`, pensado para autenticación servicio-a-servicio (sin usuario humano), emitiendo JWT a quien se autentique con credenciales de cliente válidas.
+Servidor de autorización OAuth2 del sistema. Emite los tokens que los servicios y los BFF usan para
+comunicarse entre sí (flujo `client_credentials`).
 
-## Puerto
-`9000`
+- **Puerto:** 9000
+- **Tecnología:** Spring Authorization Server (Java 21)
 
-## Tecnologías clave
-- Spring Boot 3.5.10 + Spring Security OAuth2 Authorization Server
-- Java 21 (única diferencia de versión respecto al resto de los microservicios, que usan Java 17)
+## Endpoints
 
-## Configuración relevante
-```yaml
-client-id: ms-seguridad-client
-client-secret: secret123 (sin hash, solo para entorno de desarrollo)
-authorization-grant-types: client_credentials
-scopes: cuentas.read, cuentas.write
-```
+| Método | Ruta | Descripción |
+|---|---|---|
+| POST | `/oauth2/token` | Emite un access token (Basic Auth del cliente + `grant_type=client_credentials`) |
+| GET | `/oauth2/jwks` | Claves públicas para validar los tokens; los servicios las usan como `jwk-set-uri` |
 
-## Dependencias con otros servicios
-Ninguna — es independiente. `banco-central-xyz` lo consulta para validar tokens (vía JWK); los 3 BFF lo consultan para obtener tokens antes de llamar a `banco-central-xyz`.
+## Cliente registrado
 
-## Verificación
-```
-POST http://localhost:9000/oauth2/token
-Authorization: Basic (ms-seguridad-client / secret123)
-Body (x-www-form-urlencoded): grant_type=client_credentials, scope=cuentas.read
-```
-Devuelve un `access_token` JWT válido por 299 segundos.
+| Cliente | Scopes |
+|---|---|
+| `ms-seguridad-client` | `cuentas.read`, `cuentas.write`, `clientes.read`, `pagos.read` |
+
+Las credenciales del cliente son de desarrollo y están en la configuración del servicio.
+El token tiene una vigencia de 5 minutos.
+
+## Notas
+
+El endpoint `/actuator/health` queda protegido por la autenticación del propio servidor (decisión documentada en el informe);
+el estado del auth-server se verifica obteniendo un token.

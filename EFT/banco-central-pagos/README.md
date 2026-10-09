@@ -1,37 +1,77 @@
-# banco-central-xyz
+# banco-central-pagos
 
-Backend Central del sistema bancario. Única fuente de verdad: expone los datos de `cuentas_bancarias`, `transacciones` y `movimientos_anuales` desde PostgreSQL (Neon), sin adaptarlos a ningún canal específico. Gestiona dos mecanismos de autenticación independientes, consume configuración centralizada, se registra en el directorio de servicios, y consume/produce eventos Kafka para el flujo de retiros.
+Microservicio de **transacciones y procesamiento de retiros** de Banco XYZ.
+Consume las solicitudes de retiro desde Kafka, descuenta el saldo llamando al servicio de cuentas
+y publica el resultado.
 
-## Puerto
-`8081`
+- **Puerto:** 8087
+- **Registro:** Eureka (`eureka-server:8761`)
+- **Configuración:** `config-server` (`config-repo/application.yml`)
+- **Base de datos:** PostgreSQL (Neon), base `bancoxyz_eft`, tabla `transacciones`
 
-## Tecnologías clave
-- Spring Boot 4.1.1, Spring Data JPA, Spring Security
-- Spring Cloud Config Client, Eureka Client
-- OAuth2 Resource Server (validación de JWT emitidos por `auth-server`)
-- JWT manual (login de usuario, con `jjwt`)
-- Spring Kafka (consumidor de `retiros-solicitados`, productor de `retiros-aprobados`/`retiros-rechazados`)
+## Endpoints
 
-## Dos mecanismos de autenticación conviviendo
-- **JWT manual** (`@Order(2)`): login de usuario (`POST /api/auth/login`), usado por clientes finales a través de los BFF.
-- **OAuth2 Resource Server** (`@Order(1)`, rutas `/api/oauth2/**`): valida tokens `client_credentials` emitidos por `auth-server`, usado por los BFF cuando actúan como clientes de servicio (`GET /api/oauth2/cuentas/{id}/saldo`), exigiendo el scope `cuentas.read`.
+Acceso de usuarios (JWT de usuario):
 
-## Configuración centralizada
-Toda la configuración (puerto, credenciales de base de datos, secreto JWT, URL de Eureka, `jwk-set-uri` de `auth-server`) se obtiene de `config-server` al arrancar (`spring.config.import=optional:configserver:http://config-server:8888`), no de un `application.properties` local.
+| Método | Ruta | Descripción |
+|---|---|---|
+| GET | `/api/transacciones` | Lista todas las transacciones (solo rol `EMPLEADO`) |
+| GET | `/api/transacciones/credito` | Transacciones de crédito |
+| GET | `/api/transacciones/debito` | Transacciones de débito |
+| GET | `/api/transacciones/{id}` | Una transacción |
+| GET | `/api/transacciones/recientes` | Transacciones recientes (usado por el dashboard) |
 
-## Variables de entorno
-`DB_PASSWORD`, `JWT_SECRET`
+Servicio a servicio (token OAuth2):
 
-## Dependencias con otros servicios
-- `config-server` — configuración (obligatoria para arrancar correctamente)
-- `eureka-server` — registro de servicio
-- `auth-server` — validación de JWT (`jwk-set-uri`)
-- Kafka (EC2, IP pública) — consumidor/productor de eventos de retiro
+| Método | Ruta | Scope | Descripción |
+|---|---|---|---|
+| GET | `/api/oauth2/transacciones/recientes` | `pagos.read` | Transacciones recientes |
 
-## Verificación
+Estado del servicio: `/actuator/health` y `/actuator/info` (públicos).
+
+## Procesamiento de retiros (Kafka)
+
+| Rol | Tópico | Evento |
+|---|---|---|
+| Consumidor | `retiros-solicitados` | `RetiroSolicitadoEvent` (grupo `banco-central-retiros`, 3 consumidores concurrentes) |
+| Consumidor | `alertas-seguridad` | `AlertaSeguridadEvent` (grupo `banco-central-pagos-alertas`) |
+| Productor | `retiros-aprobados` | `RetiroResultadoEvent` con estado `APROBADO` |
+| Productor | `retiros-rechazados` | `RetiroResultadoEvent` con estado `RECHAZADO` y motivo |
+| Productor | `transacciones-completadas` | `TransaccionCompletadaEvent`, solo cuando el retiro se aprueba |
+
+Por cada solicitud, el servicio llama a `banco-central-cuentas`
+(`POST /api/oauth2/cuentas/{id}/retiro`) con un token OAuth2 obtenido del `auth-server`
+(`client_credentials`, scope `cuentas.write`).
+
+## Resiliencia
+
+- **Circuit Breaker** `cuentas` sobre la llamada a Cuentas.
+- **Timeouts:** conexión 2 s, lectura 3 s.
+- **Sin Retry** en el retiro a propósito: el descuento no es idempotente y un reintento podría descontar dos veces.
+- **Fallback:** si Cuentas no está disponible, se publica un rechazo con el motivo
+  "El servicio de cuentas no esta disponible. Intenta nuevamente mas tarde".
+- Los rechazos de negocio (fondos insuficientes, cuenta inexistente) no cuentan como fallas del servicio,
+  por lo que no abren el circuito.
+
+## Seguridad
+
+Dos cadenas de filtros:
+1. `/api/oauth2/**`: Resource Server OAuth2, valida el token contra el JWK del `auth-server`.
+2. Resto de rutas: JWT de usuario (jjwt), firmado con `jwt.secret` (variable `JWT_SECRET`).
+
+## Estructura
+
 ```
-GET http://localhost:8888/banco-central-xyz/default   (config servida)
-http://localhost:8761                                  (registrado como BANCO-CENTRAL-XYZ)
-GET /api/cuentas/{id}/saldo con JWT manual
-GET /api/oauth2/cuentas/{id}/saldo con token OAuth2
+banco-central-pagos/
+├── src/main/java/com/duoc/banco_central_pagos/
+│   ├── controller/   TransaccionController, OAuth2TransaccionController
+│   ├── service/      TransaccionService
+│   ├── client/       CuentaClient, OAuth2TokenClient
+│   ├── kafka/        KafkaRetiroListener, AlertaSeguridadListener
+│   ├── config/       RestClientConfig
+│   ├── entity/
+│   ├── repository/
+│   └── dto/
+├── src/main/resources/application.properties
+└── Dockerfile
 ```

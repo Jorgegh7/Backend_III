@@ -1,25 +1,26 @@
 # config-server
 
-Servidor de configuración centralizada (Spring Cloud Config Server). Sirve el `application.yml`/`.properties` de los demás microservicios desde la carpeta `config-repo`, evitando que cada uno mantenga su configuración de forma local y dispersa.
+Servidor de configuración centralizada (Spring Cloud Config) en modo `native`. Entrega a los microservicios
+la configuración común guardada en la carpeta `config-repo/`.
 
-## Puerto
-`8888`
+- **Puerto:** 8888
+- **Tecnología:** Spring Cloud Config Server (Java 17)
 
-## Tecnologías clave
-- Spring Boot 4.1.1 + Spring Cloud Config Server
-- Perfil `native` (lee archivos locales, no un repositorio Git remoto)
+## Qué entrega
 
-## Configuración relevante
-```yaml
-spring.cloud.config.server.native.search-locations: file:///config-repo
-```
-En Docker, `config-repo` se monta como volumen (`./config-repo:/config-repo`) en el contenedor.
+`config-repo/application.yml` contiene la configuración compartida por todos los servicios:
+conexión a la base de datos, URL del `jwk-set-uri`, conexión a Kafka (brokers, serializadores y paquetes de confianza),
+registro en Eureka y exposición de Actuator. Las contraseñas y secretos no están en el archivo: se leen
+de variables de entorno (`DB_PASSWORD`, `JWT_SECRET`).
 
-## Dependencias con otros servicios
-Ninguna — es el primero en arrancar; los demás servicios dependen de él, no al revés.
+## Endpoints
 
-## Verificación
-```
-GET http://localhost:8888/banco-central-xyz/default
-```
-Devuelve la configuración completa servida a `banco-central-xyz`.
+| Método | Ruta | Descripción |
+|---|---|---|
+| GET | `/{aplicacion}/default` | Configuración que recibe un servicio, por ejemplo `/banco-central-cuentas/default` |
+| GET | `/actuator/health` | Estado del servicio |
+
+## Notas
+
+Los demás servicios arrancan después de que el config-server esté sano; si arrancan antes fallan y
+se reinician hasta que responde (ver `instrucciones.md`).

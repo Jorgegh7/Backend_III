@@ -27,6 +27,8 @@ import org.springframework.core.task.TaskExecutor;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.support.JdbcTransactionManager;
 import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.Resource;
 
 
 import javax.sql.DataSource;
@@ -38,10 +40,12 @@ public class TransaccionBatchConfig {
     //saveState(false): con varios hilos el estado de reinicio guardado no es confiable,
     //por lo que un reinicio vuelve a leer el archivo desde el principio.
     @Bean
-    public FlatFileItemReader<TransaccionDto> transaccionItemReader() {
+    public FlatFileItemReader<TransaccionDto> transaccionItemReader(
+            @Value("${batch.transacciones.archivo:classpath:data/semana_3/movimientos_financieros_diarios.csv}")
+            Resource archivo) {
         return new FlatFileItemReaderBuilder<TransaccionDto>()
                 .name("transaccionItemReader")
-                .resource(new ClassPathResource("data/semana_3/movimientos_financieros_diarios.csv"))
+                .resource(archivo)
                 .saveState(false)
                 .linesToSkip(1)
                 .delimited()

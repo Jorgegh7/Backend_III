@@ -1,25 +1,38 @@
 # bff-web
 
-Backend For Frontend del canal Web. Expone el mayor nivel de detalle de los 3 BFF (todos los campos de la cuenta), acorde a una sesión de escritorio con mayor privacidad y control. Es el único BFF con un endpoint de **dashboard**, que agrega en una sola respuesta datos de tres fuentes distintas del Backend Central (cuenta, transacciones, movimientos), consultadas en paralelo con `CompletableFuture`.
+Backend for Frontend del canal **web**. Entrega el detalle completo de la cuenta y un dashboard que combina
+datos de `banco-central-cuentas` y `banco-central-pagos`.
 
-## Puerto
-`8084`
+- **Puerto:** 8084
+- **Registro:** Eureka (`eureka-server:8761`)
+- **Servicios que consume:** `banco-central-cuentas` (8086) y `banco-central-pagos` (8087)
 
-## Tecnologías clave
-- Spring Boot 4.1.1, Spring Cloud (Eureka Client)
-- Resilience4j (Circuit Breaker + Retry + Rate Limiter)
-- Cliente OAuth2 propio (`client_credentials`) para llamadas de servicio a `banco-central-xyz`
-- Tres `Client` separados (`CuentaBancariaClient`, `TransaccionClient`, `MovimientoClient`), uno por recurso consumido
+## Endpoints
 
-## Tolerancia a fallos (Resilience4j)
-Aplicado únicamente sobre `CuentaBancariaClient` (el principal), siguiendo el mismo patrón que `bff-cajeros` y `bff-mobile`: `@Retry` + `@CircuitBreaker` + `@RateLimiter` separado, con `ResilienceEventLogger` registrando transiciones de estado en consola.
+| Método | Ruta | Seguridad | Descripción |
+|---|---|---|---|
+| GET | `/bff-web/cuentas/{id}` | Header `Authorization` con el JWT del usuario | Detalle completo de la cuenta |
+| GET | `/bff-web/cuentas/{id}/dashboard` | Header `Authorization` con el JWT del usuario | Cuenta, movimientos y transacciones recientes en una sola respuesta |
+| GET | `/bff-web/cuentas/{id}/saldo-oauth2` | Sin JWT de usuario; el BFF usa su propio token OAuth2 | Saldo consultado servicio a servicio |
+| GET | `/actuator/health`, `/actuator/info` | Públicos | Estado del servicio |
 
-## Endpoints principales
+## Resiliencia
+
+Resilience4j con una instancia por servicio consumido (`bancoCentral` para Cuentas y `pagos` para Pagos):
+Circuit Breaker, Retry y Rate Limiter, con fallbacks tipados.
+Los errores de negocio (acceso denegado, cuenta no encontrada, token inválido) no se reintentan ni abren el circuito.
+
+## Estructura
+
 ```
-GET /bff-web/cuentas/{id}                   (JWT manual — detalle completo)
-GET /bff-web/cuentas/{id}/dashboard          (agregación: cuenta + 5 transacciones + 5 movimientos recientes, en paralelo)
-GET /bff-web/cuentas/{id}/saldo-oauth2       (OAuth2 client_credentials, sin pasar token manualmente)
+bff-web/
+├── src/main/java/com/duoc/bff_web/
+│   ├── controller/   WebController
+│   ├── service/      WebService, DashboardService
+│   ├── client/       CuentaBancariaClient, TransaccionClient, MovimientoClient, CuentaBancariaOAuth2Client
+│   ├── config/       RestClientConfig
+│   ├── dto/
+│   └── exception/
+├── src/main/resources/application.properties
+└── Dockerfile
 ```
-
-## Dependencias con otros servicios
-`config-server` (configuración local, no centralizada), `eureka-server`, `banco-central-xyz`, `auth-server`.

@@ -1,37 +1,78 @@
-# banco-central-xyz
+# banco-central-clientes
 
-Backend Central del sistema bancario. Única fuente de verdad: expone los datos de `cuentas_bancarias`, `transacciones` y `movimientos_anuales` desde PostgreSQL (Neon), sin adaptarlos a ningún canal específico. Gestiona dos mecanismos de autenticación independientes, consume configuración centralizada, se registra en el directorio de servicios, y consume/produce eventos Kafka para el flujo de retiros.
+Microservicio de **clientes y autenticación de usuarios** de Banco XYZ.
+Valida credenciales, emite el JWT de usuario, detecta intentos de acceso sospechosos y
+notifica transacciones completadas.
 
-## Puerto
-`8081`
+- **Puerto:** 8085
+- **Registro:** Eureka (`eureka-server:8761`)
+- **Configuración:** `config-server` (`config-repo/application.yml`)
+- **Base de datos:** PostgreSQL (Neon), base `bancoxyz_eft`, tabla `usuarios`
 
-## Tecnologías clave
-- Spring Boot 4.1.1, Spring Data JPA, Spring Security
-- Spring Cloud Config Client, Eureka Client
-- OAuth2 Resource Server (validación de JWT emitidos por `auth-server`)
-- JWT manual (login de usuario, con `jjwt`)
-- Spring Kafka (consumidor de `retiros-solicitados`, productor de `retiros-aprobados`/`retiros-rechazados`)
+## Endpoints
 
-## Dos mecanismos de autenticación conviviendo
-- **JWT manual** (`@Order(2)`): login de usuario (`POST /api/auth/login`), usado por clientes finales a través de los BFF.
-- **OAuth2 Resource Server** (`@Order(1)`, rutas `/api/oauth2/**`): valida tokens `client_credentials` emitidos por `auth-server`, usado por los BFF cuando actúan como clientes de servicio (`GET /api/oauth2/cuentas/{id}/saldo`), exigiendo el scope `cuentas.read`.
+| Método | Ruta | Seguridad | Descripción |
+|---|---|---|---|
+| POST | `/api/auth/login` | Pública | Autentica un usuario y devuelve un JWT |
+| GET | `/api/oauth2/clientes/{username}` | Token OAuth2, scope `clientes.read` | Consulta de un cliente por su nombre de usuario |
+| GET | `/actuator/health`, `/actuator/info` | Pública | Estado del servicio |
 
-## Configuración centralizada
-Toda la configuración (puerto, credenciales de base de datos, secreto JWT, URL de Eureka, `jwk-set-uri` de `auth-server`) se obtiene de `config-server` al arrancar (`spring.config.import=optional:configserver:http://config-server:8888`), no de un `application.properties` local.
+### POST /api/auth/login
 
-## Variables de entorno
-`DB_PASSWORD`, `JWT_SECRET`
+Cuerpo:
 
-## Dependencias con otros servicios
-- `config-server` — configuración (obligatoria para arrancar correctamente)
-- `eureka-server` — registro de servicio
-- `auth-server` — validación de JWT (`jwk-set-uri`)
-- Kafka (EC2, IP pública) — consumidor/productor de eventos de retiro
-
-## Verificación
+```json
+{ "username": "steve", "password": "1234", "canal": "WEB" }
 ```
-GET http://localhost:8888/banco-central-xyz/default   (config servida)
-http://localhost:8761                                  (registrado como BANCO-CENTRAL-XYZ)
-GET /api/cuentas/{id}/saldo con JWT manual
-GET /api/oauth2/cuentas/{id}/saldo con token OAuth2
+
+Respuesta correcta:
+
+```json
+{ "token": "<JWT>" }
 ```
+
+El JWT incluye el nombre de usuario, su rol y la cuenta asociada (`cuentaIdLegacy`).
+`canal` es un texto libre que identifica desde dónde se intenta el acceso (por ejemplo `WEB`, `MOBILE`
+o `CAJERO`); se usa en la alerta de seguridad. Con credenciales incorrectas el servicio responde con error
+de autenticación.
+
+## Seguridad
+
+Dos cadenas de filtros en `SecurityConfig`:
+1. `/api/oauth2/**`: Resource Server OAuth2, valida el token contra el JWK del `auth-server`.
+2. Resto de rutas: JWT de usuario (jjwt), firmado con `jwt.secret`.
+
+El secreto se entrega por la variable de entorno `JWT_SECRET`; no está en el repositorio.
+Las contraseñas se almacenan como hash (`PasswordEncoder`).
+
+## Mensajería (Kafka)
+
+| Rol | Tópico | Evento | Cuándo |
+|---|---|---|---|
+| Productor | `alertas-seguridad` | `AlertaSeguridadEvent` | Tras **3 intentos fallidos consecutivos** de login de un mismo usuario |
+| Consumidor | `transacciones-completadas` | `TransaccionCompletadaEvent` | Registra la notificación de una transacción aprobada |
+
+`AlertaSeguridadEvent` contiene: usuario, canal, número de intentos, motivo y fecha.
+El contador de intentos fallidos se reinicia con un login correcto o al publicar la alerta.
+Se mantiene **en memoria**: se pierde al reiniciar el servicio (limitación documentada en el informe).
+
+## Estructura
+
+```
+banco-central-clientes/
+├── src/main/java/com/duoc/banco_central_clientes/
+│   ├── controller/   AuthController, OAuth2ClienteController
+│   ├── service/      AuthService
+│   ├── security/     JwtService
+│   ├── entity/       Usuario
+│   ├── repository/   UsuarioRepository
+│   ├── dto/          LoginRequestDto, LoginResponseDto
+│   └── kafka/        NotificacionTransaccionListener
+├── src/main/resources/application.properties
+└── Dockerfile
+```
+
+## Resiliencia
+
+Este servicio no invoca a otros microservicios, por lo que no usa Circuit Breaker.
+La resiliencia del flujo de retiros está en `banco-central-pagos` y en los BFF.
