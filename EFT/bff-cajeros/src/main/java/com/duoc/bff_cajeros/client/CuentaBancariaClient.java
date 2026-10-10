@@ -24,23 +24,15 @@ public class CuentaBancariaClient {
     private final RestClient bancoCentralRestClient;
 
     /**
-     * Llamada con Circuit Breaker + Retry. Solo las fallas de disponibilidad activan el fallback;
-     * los errores de negocio (403, 404, 401) se propagan tal cual al cliente.
+     * Llamada con Retry, Circuit Breaker y Rate Limiter. Solo las fallas de
+     * disponibilidad activan el fallback; los errores de negocio (403, 404, 401)
+     * y el rechazo del rate limiter (429) se propagan tal cual al cliente.
      */
     @Retry(name = "bancoCentral")
     @CircuitBreaker(name = "bancoCentral", fallbackMethod = "obtenerSaldoFallback")
+    @RateLimiter(name = "bancoCentral")
     public SaldoCentralDto obtenerSaldo(Long id, String token) {
         log.info("Llamando al servicio de cuentas para cuenta id={}", id);
-        return ejecutarLlamada(id, token);
-    }
-
-    /**
-     * Llamada con Rate Limiter: limita el numero de llamadas permitidas en un
-     * periodo de tiempo, independiente de si el servicio falla o no.
-     */
-    @RateLimiter(name = "bancoCentral")
-    public SaldoCentralDto obtenerSaldoConLimite(Long id, String token) {
-        log.info("Llamando al servicio de cuentas (con rate limiter) para cuenta id={}", id);
         return ejecutarLlamada(id, token);
     }
 

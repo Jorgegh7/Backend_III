@@ -18,8 +18,8 @@ import org.springframework.web.client.RestClient;
 
 /**
  * Encapsula las llamadas HTTP hacia banco-central-cuentas relacionadas a cuentas
- * bancarias. No transforma datos ni aplica lógica de negocio, solo ejecuta
- * la petición y devuelve el DTO tal como lo entrega el servicio.
+ * bancarias. No transforma datos ni aplica logica de negocio, solo ejecuta
+ * la peticion y devuelve el DTO tal como lo entrega el servicio.
  */
 @Slf4j
 @Component
@@ -30,14 +30,9 @@ public class CuentaBancariaClient {
 
     @Retry(name = "bancoCentral")
     @CircuitBreaker(name = "bancoCentral", fallbackMethod = "fallbackServicioNoDisponible")
+    @RateLimiter(name = "bancoCentral")
     public CuentaBancariaMobileCentralDto obtenerCuentaResumen(Long id, String token) {
         log.info("Llamando a banco-central-cuentas para cuenta id={}", id);
-        return ejecutarLlamada(id, token);
-    }
-
-    @RateLimiter(name = "bancoCentral")
-    public CuentaBancariaMobileCentralDto obtenerCuentaResumenConLimite(Long id, String token) {
-        log.info("Llamando a banco-central-cuentas (con rate limiter) para cuenta id={}", id);
         return ejecutarLlamada(id, token);
     }
 
@@ -59,15 +54,17 @@ public class CuentaBancariaClient {
         }
     }
 
-    // Fallbacks tipados: solo se activan para "servicio caído" y "circuito abierto".
-    // Los errores de negocio (403, 404, 401) no coinciden y se propagan tal cual.
+    // Fallbacks tipados con el mismo nombre: Resilience4j elige el que coincide
+    // con la excepcion. Solo se activan para "servicio caido" y "circuito abierto".
+    // Los errores de negocio (403, 404, 401) y el rechazo del rate limiter no
+    // coinciden y se propagan tal cual.
     private CuentaBancariaMobileCentralDto fallbackServicioNoDisponible(
             Long id, String token, ServicioNoDisponibleException t) {
         log.warn("FALLBACK (servicio no disponible) para cuenta id={}", id);
         throw new ServicioNoDisponibleException();
     }
 
-    private CuentaBancariaMobileCentralDto fallbackCircuitoAbierto(
+    private CuentaBancariaMobileCentralDto fallbackServicioNoDisponible(
             Long id, String token, CallNotPermittedException t) {
         log.warn("FALLBACK (circuito abierto) para cuenta id={}", id);
         throw new ServicioNoDisponibleException();

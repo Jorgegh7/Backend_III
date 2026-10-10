@@ -18,8 +18,8 @@ import org.springframework.web.client.RestClient;
 
 /**
  * Encapsula las llamadas HTTP hacia banco-central-cuentas relacionadas a cuentas
- * bancarias. No transforma datos ni aplica lógica de negocio, solo ejecuta
- * la petición y devuelve el DTO tal como lo entrega el servicio.
+ * bancarias. No transforma datos ni aplica logica de negocio, solo ejecuta
+ * la peticion y devuelve el DTO tal como lo entrega el servicio.
  */
 @Slf4j
 @Component
@@ -30,14 +30,9 @@ public class CuentaBancariaClient {
 
     @Retry(name = "bancoCentral")
     @CircuitBreaker(name = "bancoCentral", fallbackMethod = "fallbackServicioNoDisponible")
+    @RateLimiter(name = "bancoCentral")
     public CuentaBancariaCentralDto obtenerCuenta(Long id, String token) {
         log.info("Llamando a banco-central-cuentas para cuenta id={}", id);
-        return ejecutarLlamada(id, token);
-    }
-
-    @RateLimiter(name = "bancoCentral")
-    public CuentaBancariaCentralDto obtenerCuentaConLimite(Long id, String token) {
-        log.info("Llamando a banco-central-cuentas (con rate limiter) para cuenta id={}", id);
         return ejecutarLlamada(id, token);
     }
 
@@ -59,8 +54,9 @@ public class CuentaBancariaClient {
         }
     }
 
-    // Fallbacks tipados: solo "servicio caído" y "circuito abierto" se convierten
-    // en 503. Los errores de negocio (403, 404, 401) se propagan sin cambios.
+    // Fallbacks tipados: solo "servicio caido" y "circuito abierto" se convierten
+    // en 503. Los errores de negocio (403, 404, 401) y el rechazo del rate
+    // limiter (429) se propagan sin cambios.
     private CuentaBancariaCentralDto fallbackServicioNoDisponible(
             Long id, String token, ServicioNoDisponibleException t) {
         log.warn("FALLBACK (servicio no disponible) para cuenta id={}", id);

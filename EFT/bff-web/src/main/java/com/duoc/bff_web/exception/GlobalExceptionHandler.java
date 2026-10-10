@@ -1,6 +1,7 @@
 package com.duoc.bff_web.exception;
 
 import com.duoc.bff_web.dto.ErrorResponseDto;
+import io.github.resilience4j.ratelimiter.RequestNotPermitted;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MissingRequestHeaderException;
@@ -28,10 +29,16 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(new ErrorResponseDto(e.getMessage()));
     }
 
+    @ExceptionHandler(RequestNotPermitted.class)
+    public ResponseEntity<ErrorResponseDto> manejarLimiteExcedido(RequestNotPermitted e) {
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                .body(new ErrorResponseDto("Demasiadas solicitudes, intenta nuevamente en unos segundos"));
+    }
+
     @ExceptionHandler(MissingRequestHeaderException.class)
     public ResponseEntity<ErrorResponseDto> manejarHeaderFaltante(MissingRequestHeaderException e) {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                .body(new ErrorResponseDto("Debes iniciar sesión para acceder a este recurso"));
+                .body(new ErrorResponseDto("Debes iniciar sesion para acceder a este recurso"));
     }
 
     @ExceptionHandler(NoResourceFoundException.class)
@@ -45,9 +52,15 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.FORBIDDEN).body(new ErrorResponseDto(e.getMessage()));
     }
 
+    // Las llamadas asincronas del dashboard llegan envueltas en CompletionException:
+    // se revisa la causa para responder 429 cuando fue el rate limiter.
     @ExceptionHandler(CompletionException.class)
     public ResponseEntity<ErrorResponseDto> manejarErrorInterno(CompletionException e) {
+        if (e.getCause() instanceof RequestNotPermitted) {
+            return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                    .body(new ErrorResponseDto("Demasiadas solicitudes, intenta nuevamente en unos segundos"));
+        }
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(new ErrorResponseDto("Ocurrió un error inesperado al procesar la solicitud"));
+                .body(new ErrorResponseDto("Ocurrio un error inesperado al procesar la solicitud"));
     }
 }
