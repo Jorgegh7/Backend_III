@@ -35,7 +35,7 @@ services:
     volumes:
       - zk1-data:/var/lib/zookeeper/data
     healthcheck:
-      test: ["CMD-SHELL", "echo ruok | nc -w 2 localhost 2181 | grep imok"]
+      test: ["CMD-SHELL", "echo srvr | nc -w 2 localhost 2181 | grep Mode"]
       interval: 10s
       timeout: 5s
       retries: 12
@@ -57,7 +57,7 @@ services:
     volumes:
       - zk2-data:/var/lib/zookeeper/data
     healthcheck:
-      test: ["CMD-SHELL", "echo ruok | nc -w 2 localhost 2181 | grep imok"]
+      test: ["CMD-SHELL", "echo srvr | nc -w 2 localhost 2181 | grep Mode"]
       interval: 10s
       timeout: 5s
       retries: 12
@@ -79,7 +79,7 @@ services:
     volumes:
       - zk3-data:/var/lib/zookeeper/data
     healthcheck:
-      test: ["CMD-SHELL", "echo ruok | nc -w 2 localhost 2181 | grep imok"]
+      test: ["CMD-SHELL", "echo srvr | nc -w 2 localhost 2181 | grep Mode"]
       interval: 10s
       timeout: 5s
       retries: 12
@@ -197,3 +197,25 @@ services:
       KAFKA_CLUSTERS_0_NAME: kafka-local
       KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka-1:9092,kafka-2:9092,kafka-3:9092
       DYNAMIC_CONFIG_ENABLED: "true"
+
+  kafka-init:
+    image: confluentinc/cp-kafka:7.4.4
+    container_name: kafka-init
+    networks: [kafka-net]
+    depends_on:
+      kafka-1:
+        condition: service_healthy
+      kafka-2:
+        condition: service_healthy
+      kafka-3:
+        condition: service_healthy
+    entrypoint: ["/bin/sh", "-c"]
+    command: |
+      "
+      kafka-topics --bootstrap-server kafka-1:9092 --create --if-not-exists --topic retiros-solicitados --partitions 3 --replication-factor 3
+      kafka-topics --bootstrap-server kafka-1:9092 --create --if-not-exists --topic retiros-aprobados --partitions 3 --replication-factor 3
+      kafka-topics --bootstrap-server kafka-1:9092 --create --if-not-exists --topic retiros-rechazados --partitions 3 --replication-factor 3
+      kafka-topics --bootstrap-server kafka-1:9092 --create --if-not-exists --topic transacciones-completadas --partitions 3 --replication-factor 3
+      kafka-topics --bootstrap-server kafka-1:9092 --create --if-not-exists --topic alertas-seguridad --partitions 3 --replication-factor 3
+      echo 'Topicos creados correctamente.'
+      "
