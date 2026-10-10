@@ -1,0 +1,556 @@
+{
+  "info": {
+    "_postman_id": "16fff459-a97b-4f16-a36b-46564926fe27",
+    "name": "Backend3_EFT",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "52273482",
+    "_collection_link": "https://go.postman.co/collection/52273482-16fff459-a97b-4f16-a36b-46564926fe27?source=collection_link"
+  },
+  "item": [
+    {
+      "name": "0.Infraestructura",
+      "item": [
+        {
+          "name": "Health config-server",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "Health config-servers",
+              "host": [
+                "Health config-servers"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Health eureka",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{eureka}}/actuator/health",
+              "host": [
+                "{{eureka}}"
+              ],
+              "path": [
+                "actuator",
+                "health"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Health clientes",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{clientes}}/actuator/health",
+              "host": [
+                "{{clientes}}"
+              ],
+              "path": [
+                "actuator",
+                "health"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Health cuentas",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{cuentas}}/actuator/health",
+              "host": [
+                "{{cuentas}}"
+              ],
+              "path": [
+                "actuator",
+                "health"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Health pagos",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{pagos}}/actuator/health",
+              "host": [
+                "{{pagos}}"
+              ],
+              "path": [
+                "actuator",
+                "health"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Health cajeros",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{cajeros}}/actuator/health",
+              "host": [
+                "{{cajeros}}"
+              ],
+              "path": [
+                "actuator",
+                "health"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Health mobile",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{mobile}}/actuator/health",
+              "host": [
+                "{{mobile}}"
+              ],
+              "path": [
+                "actuator",
+                "health"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Health web",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{web}}/actuator/health",
+              "host": [
+                "{{web}}"
+              ],
+              "path": [
+                "actuator",
+                "health"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Servicios registrados-Eureka",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": ""
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "1.Seguridad",
+      "item": [
+        {
+          "name": "Token OAuth2",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{auth}}/oauth2/token",
+              "host": [
+                "{{auth}}"
+              ],
+              "path": [
+                "oauth2",
+                "token"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "User Login",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"username\": \"steve\",\r\n    \"password\": \"1234\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{clientes}}/api/auth/login",
+              "host": [
+                "{{clientes}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "login"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "2.Cajeros",
+      "item": [
+        {
+          "name": "Saldo",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{cajeros}}/bff-cajero/cuentas/102/saldo",
+              "host": [
+                "{{cajeros}}"
+              ],
+              "path": [
+                "bff-cajero",
+                "cuentas",
+                "102",
+                "saldo"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Retiro",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"monto\": \"100.00\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{cajeros}}/bff-cajero/cuentas/102/retiros",
+              "host": [
+                "{{cajeros}}"
+              ],
+              "path": [
+                "bff-cajero",
+                "cuentas",
+                "102",
+                "retiros"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Estado Retiro",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{cajeros}}/bff-cajero/cuentas/retiros/1234c62e-ab9c-442a-bbd9-96c3fe4ffed4",
+              "host": [
+                "{{cajeros}}"
+              ],
+              "path": [
+                "bff-cajero",
+                "cuentas",
+                "retiros",
+                "1234c62e-ab9c-442a-bbd9-96c3fe4ffed4"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "OAuth2-ID",
+          "request": {
+            "method": "GET",
+            "header": []
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "3.Web",
+      "item": [
+        {
+          "name": "Cuenta-ID",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{json_web_token_10v8}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{web}}/bff-web/cuentas/103",
+              "host": [
+                "{{web}}"
+              ],
+              "path": [
+                "bff-web",
+                "cuentas",
+                "103"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Dashboard",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{web}}/bff-web/cuentas/102/dashboard",
+              "host": [
+                "{{web}}"
+              ],
+              "path": [
+                "bff-web",
+                "cuentas",
+                "102",
+                "dashboard"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "OAuth2-ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{web}}/bff-web/cuentas/102/saldo-oauth2",
+              "host": [
+                "{{web}}"
+              ],
+              "path": [
+                "bff-web",
+                "cuentas",
+                "102",
+                "saldo-oauth2"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "4.Mobile",
+      "item": [
+        {
+          "name": "OAuth2-ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{mobile}}/bff-mobile/cuentas/102/saldo-oauth2",
+              "host": [
+                "{{mobile}}"
+              ],
+              "path": [
+                "bff-mobile",
+                "cuentas",
+                "102",
+                "saldo-oauth2"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Saldo-ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{mobile}}/bff-mobile/cuentas/102/saldo",
+              "host": [
+                "{{mobile}}"
+              ],
+              "path": [
+                "bff-mobile",
+                "cuentas",
+                "102",
+                "saldo"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "5.Resilencia",
+      "item": [
+        {
+          "name": "Estado circuit breaker",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{mobile}}/actuator/circuitbreakers",
+              "host": [
+                "{{mobile}}"
+              ],
+              "path": [
+                "actuator",
+                "circuitbreakers"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Rate limiter",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{mobile}}/bff-mobile/cuentas/155/saldo",
+              "host": [
+                "{{mobile}}"
+              ],
+              "path": [
+                "bff-mobile",
+                "cuentas",
+                "155",
+                "saldo"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Circuit breaker con servicio caído",
+          "request": {
+            "method": "GET",
+            "header": []
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "packages": {},
+        "requests": {},
+        "exec": [
+          ""
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "packages": {},
+        "requests": {},
+        "exec": [
+          ""
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "auth",
+      "value": "http://localhost:9000"
+    },
+    {
+      "key": "clientes",
+      "value": "http://localhost:8085"
+    },
+    {
+      "key": "cuentas",
+      "value": "http://localhost:8086"
+    },
+    {
+      "key": "pagos",
+      "value": "http://localhost:8087"
+    },
+    {
+      "key": "cajeros",
+      "value": "http://localhost:8082"
+    },
+    {
+      "key": "mobile",
+      "value": "http://localhost:8083"
+    },
+    {
+      "key": "web",
+      "value": "http://localhost:8084"
+    },
+    {
+      "key": "eureka",
+      "value": "http://localhost:8761"
+    },
+    {
+      "key": "jwtUsuario",
+      "secret": true
+    },
+    {
+      "key": "token",
+      "value": ""
+    }
+  ]
+}
