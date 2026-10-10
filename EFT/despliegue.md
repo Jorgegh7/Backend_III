@@ -17,7 +17,7 @@ Los servicios se conectan a Kafka por la IP elastica de la instancia EC2.
 
 - Motor: PostgreSQL. En el desarrollo se uso Neon (servicio gestionado), pero sirve cualquier PostgreSQL accesible por JDBC.
 - Cada persona debe crear su propia base de datos vacia; el repositorio no incluye una base compartida.
-- La conexion se entrega a los contenedores con variables de entorno del archivo `.env` (ver seccion 4.1): `DB_URL`, `DB_USER` y `DB_PASSWORD`. El `.env` tiene en total cuatro variables; la cuarta es `JWT_SECRET`.
+- La conexion se entrega a los contenedores con variables de entorno del archivo `.env` (ver seccion 4.1): `DB_URL`, `DB_USER` y `DB_PASSWORD`. El `.env` tiene en total cinco variables; la cuarta es `JWT_SECRET` y la quinta `OAUTH_CLIENT_SECRET`.
 - El script `schema-postgresql.sql` de `banco-central-clientes` crea la tabla de usuarios y sus datos de prueba.
 - Los datos de cuentas y transacciones se cargan ejecutando el proceso batch (seccion 4.6).
 
@@ -169,6 +169,7 @@ DB_URL=jdbc:postgresql://<host>/<nombre-de-la-base>?sslmode=require
 DB_USER=
 DB_PASSWORD=
 JWT_SECRET=
+OAUTH_CLIENT_SECRET=
 ```
 
 | Variable | Descripcion | La usan |
@@ -177,6 +178,7 @@ JWT_SECRET=
 | `DB_USER` | Usuario de la base | clientes, cuentas, pagos y batch |
 | `DB_PASSWORD` | Clave de la base | clientes, cuentas, pagos y batch |
 | `JWT_SECRET` | Clave de firma de los tokens de usuario | clientes, cuentas y pagos |
+| `OAUTH_CLIENT_SECRET` | Secreto del cliente OAuth2 | auth-server, pagos y los tres BFF |
 
 La IP de Kafka que usan los servicios esta en la configuracion de `config-repo`; si cambia la IP elastica, debe actualizarse alli.
 

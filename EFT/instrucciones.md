@@ -20,6 +20,7 @@ DB_URL=jdbc:postgresql://<host>/<nombre-de-la-base>?sslmode=require
 DB_USER=
 DB_PASSWORD=
 JWT_SECRET=
+OAUTH_CLIENT_SECRET=
 ```
 
 Los valores no se incluyen en el repositorio.
@@ -30,6 +31,7 @@ Los valores no se incluyen en el repositorio.
 | `DB_USER` | Usuario de la base de datos |
 | `DB_PASSWORD` | Clave de la base de datos |
 | `JWT_SECRET` | Clave con la que se firman los tokens de usuario |
+| `OAUTH_CLIENT_SECRET` | Secreto con el que los BFF y Pagos piden su token al Auth Server |
 
 La base debe existir y estar vacia. Las tablas de usuarios se crean cuando arranca `banco-central-clientes` (script `schema-postgresql.sql`) y los datos de cuentas y transacciones se cargan al ejecutar el batch (seccion 4). Por eso hay que ejecutar el batch al menos una vez antes de las pruebas de la seccion 6.
 

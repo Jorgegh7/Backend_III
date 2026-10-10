@@ -24,7 +24,7 @@ public class BancoXyzRetryPolicy extends SimpleRetryPolicy {
         }
 
         //Llamada a Super para comparar de forma interna RetryCount < MAX_ATTEMPTS
-        boolean puedeReintentar = canRetry(context);
+        boolean puedeReintentar = super.canRetry(context);
         if(ultimoError != null){
             log.warn("Reintento {}/{} tras excepción inesperada: {}",
                     context.getRetryCount(), MAX_ATTEMPTS, ultimoError.getMessage());

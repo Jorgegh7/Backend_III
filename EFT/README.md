@@ -122,4 +122,4 @@ EFT/
 ## 11. Seguridad de credenciales
 
 Las contraseñas y secretos van en un archivo `.env` local que **no se versiona**
-(`DB_PASSWORD`, `JWT_SECRET`). Los valores del repositorio son solo de desarrollo.
+(`DB_PASSWORD`, `JWT_SECRET`, `OAUTH_CLIENT_SECRET`). Los valores del repositorio son solo de desarrollo.

@@ -32,6 +32,8 @@ services:
     container_name: auth-server
     ports:
       - "9000:9000"
+    environment:
+      - OAUTH_CLIENT_SECRET=${OAUTH_CLIENT_SECRET}
     networks:
       - banco-net
 
@@ -88,6 +90,7 @@ services:
       - DB_USER=${DB_USER}
       - DB_PASSWORD=${DB_PASSWORD}
       - JWT_SECRET=${JWT_SECRET}
+      - OAUTH_CLIENT_SECRET=${OAUTH_CLIENT_SECRET}
     depends_on:
       config-server:
         condition: service_healthy
@@ -106,6 +109,8 @@ services:
     restart: unless-stopped
     ports:
       - "8082:8082"
+    environment:
+      - OAUTH_CLIENT_SECRET=${OAUTH_CLIENT_SECRET}
     depends_on:
       eureka-server:
         condition: service_started
@@ -117,6 +122,8 @@ services:
     container_name: bff-mobile
     ports:
       - "8083:8083"
+    environment:
+      - OAUTH_CLIENT_SECRET=${OAUTH_CLIENT_SECRET}
     depends_on:
       config-server:
         condition: service_healthy
@@ -135,6 +142,8 @@ services:
     container_name: bff-web
     ports:
       - "8084:8084"
+    environment:
+      - OAUTH_CLIENT_SECRET=${OAUTH_CLIENT_SECRET}
     depends_on:
       config-server:
         condition: service_healthy

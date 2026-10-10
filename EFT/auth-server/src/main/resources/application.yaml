@@ -11,7 +11,7 @@ spring:
           ms-seguridad-client:
             registration:
               client-id: ms-seguridad-client
-              client-secret: "{noop}secret123"
+              client-secret: "{noop}${OAUTH_CLIENT_SECRET}"
               client-authentication-methods:
                 - client_secret_basic
               authorization-grant-types:
