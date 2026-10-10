@@ -29,7 +29,11 @@ public class CajeroService {
         return new SaldoResponseDto(saldo.saldo());
     }
 
-    public RetiroSolicitudResponseDto solicitarRetiro(Long cuentaId, RetiroRequestDto request) {
+    public RetiroSolicitudResponseDto solicitarRetiro(Long cuentaId, RetiroRequestDto request, String token) {
+        // Valida que la cuenta pertenezca al usuario del token: si no, el Banco Central
+        // responde 403 y el retiro no se publica en Kafka.
+        cuentaBancariaClient.obtenerSaldo(cuentaId, token);
+
         String solicitudId = UUID.randomUUID().toString();
 
         RetiroSolicitadoEvent evento = new RetiroSolicitadoEvent(

@@ -7,7 +7,7 @@ CREATE TABLE IF NOT EXISTS usuarios (
 );
 
 INSERT INTO usuarios (username, password_hash, rol, cuenta_id_legacy)
-VALUES ('steve', '$2a$10$23FJiRn5MKvJmtkUQrX8KuUYyHjlb1KrysDyyTDiIdBHIG29gSwJO', 'CLIENTE', 110)
+VALUES ('steve', '$2a$10$23FJiRn5MKvJmtkUQrX8KuUYyHjlb1KrysDyyTDiIdBHIG29gSwJO', 'CLIENTE', 102)
 ON CONFLICT (username) DO UPDATE SET
     password_hash = EXCLUDED.password_hash,
     rol = EXCLUDED.rol,

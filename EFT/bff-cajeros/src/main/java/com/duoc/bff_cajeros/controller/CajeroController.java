@@ -30,8 +30,9 @@ public class CajeroController {
     @PostMapping("/{id}/retiros")
     @ResponseStatus(HttpStatus.ACCEPTED)
     public RetiroSolicitudResponseDto solicitarRetiro(@PathVariable Long id,
+                                                      @RequestHeader("Authorization") String token,
                                                       @RequestBody RetiroRequestDto request) {
-        return cajeroService.solicitarRetiro(id, request);
+        return cajeroService.solicitarRetiro(id, request, token);
     }
 
     @GetMapping("/retiros/{solicitudId}")

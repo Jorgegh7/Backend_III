@@ -1,7 +1,7 @@
 spring:
   datasource:
-    url: jdbc:postgresql://ep-curly-salad-acqh1vb2.sa-east-1.aws.neon.tech/bancoxyz_eft?sslmode=require
-    username: neondb_owner
+    url: ${DB_URL}
+    username: ${DB_USER}
     password: ${DB_PASSWORD}
   jpa:
     hibernate:
